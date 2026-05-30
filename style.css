@@ -195,7 +195,7 @@ body {
 .svg-wrap {
   flex-shrink: 0;
   position: relative;
-  /* Dimensions set by JS resizeCanvas() */
+  /* Sized by JS resizeCanvas() */
 }
 .svg-wrap svg {
   width: 100%; height: 100%; display: block;

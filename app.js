@@ -714,7 +714,6 @@ function openThicknessPopup() {
   // Use 400ms delay to skip the originating tap's own click/touchend bubble
   setTimeout(() => {
     document.addEventListener('click', closeThicknessPopup, { once: true });
-    document.addEventListener('touchend', closeThicknessPopup, { once: true });
   }, 400);
 }
 
@@ -722,9 +721,7 @@ function closeThicknessPopup() {
   const popup = document.getElementById('thickness-popup');
   if (popup) popup.classList.add('hidden');
   _popupOpen = false;
-  // Remove both listeners (in case only one fired)
   document.removeEventListener('click', closeThicknessPopup);
-  document.removeEventListener('touchend', closeThicknessPopup);
 }
 
 // ── Canvas resize ─────────────────────────────────────────────────
@@ -773,13 +770,22 @@ function wireEvents() {
   // Tool buttons
   document.getElementById('tool-bucket').addEventListener('click', () => setTool('bucket'));
   document.getElementById('tool-eraser').addEventListener('click', () => setTool('eraser'));
-  document.getElementById('tool-brush').addEventListener('click', () => {
+  // Brush button — popup on mobile via touchstart, click on desktop
+  const brushBtn = document.getElementById('tool-brush');
+  brushBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (_popupOpen) { closeThicknessPopup(); return; }
     setTool('brush');
-    // Show popup on mobile OR always if thickness pills are hidden
+    playSound('click');
+    openThicknessPopup();
+  }, { passive: false });
+  brushBtn.addEventListener('click', () => {
+    // Only fires on desktop (no touch)
+    if (_popupOpen) { closeThicknessPopup(); return; }
+    setTool('brush');
     const pills = document.querySelector('.tool-rail > .btn-group:first-child');
-    const pillsHidden = !pills || getComputedStyle(pills).display === 'none';
-    if (pillsHidden) openThicknessPopup();
+    if (!pills || getComputedStyle(pills).display === 'none') openThicknessPopup();
   });
   document.getElementById('tool-undo').addEventListener('click', undo);
 

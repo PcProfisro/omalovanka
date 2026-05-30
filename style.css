@@ -203,8 +203,22 @@ body {
   box-shadow: var(--sh-lg);
   background: #fff;
 }
-/* Thickness pills */
-.thickness-pill { gap: 0; }
+/* Floating thickness popup (mobile) */
+.thickness-popup {
+  position: fixed;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 6px;
+  background: rgba(255,255,255,.96);
+  border: 1px solid rgba(9,84,117,.15);
+  border-radius: var(--r-xl);
+  padding: 10px 8px;
+  box-shadow: 0 8px 32px rgba(9,84,117,.22);
+  z-index: 200;
+  transition: opacity .15s ease, transform .15s ease;
+}
+.thickness-popup.hidden {
+  display: none;
+}
 .thickness-pill .dot {
   border-radius: 50%;
   background: currentColor;
@@ -414,6 +428,10 @@ body {
   .tool-rail .rail-sep { width: 1.5px; height: 28px; margin: 0 2px; flex-shrink: 0; }
 
   .action-rail { display: none; }
+
+  /* Hide desktop thickness group on mobile — shown via popup instead */
+  .tool-rail > .btn-group:first-child,
+  .tool-rail > .rail-sep:first-of-type { display: none !important; }
 
   .palette-bar {
     grid-column: 1; grid-row: 3;

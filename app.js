@@ -684,6 +684,40 @@ function fixVH() {
   document.documentElement.style.setProperty('--real-vh', (window.innerHeight * 0.01) + 'px');
 }
 
+// ── Thickness popup (mobile) ──────────────────────────────────────
+let _popupOpen = false;
+
+function isMobile() { return window.innerWidth <= 767; }
+
+function openThicknessPopup() {
+  const popup  = document.getElementById('thickness-popup');
+  const btn    = document.getElementById('tool-brush');
+  if (!popup || !btn) return;
+
+  // Position popup above the brush button
+  const r = btn.getBoundingClientRect();
+  popup.style.left   = (r.left + r.width / 2 - 31) + 'px';
+  popup.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+  popup.classList.remove('hidden');
+  _popupOpen = true;
+
+  // Highlight active thickness in popup
+  popup.querySelectorAll('.thickness-pill').forEach(b => {
+    b.classList.toggle('tool-btn--active', +b.dataset.thickness === S.thickness);
+  });
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', closeThicknessPopup, { once: true });
+  }, 10);
+}
+
+function closeThicknessPopup() {
+  const popup = document.getElementById('thickness-popup');
+  if (popup) popup.classList.add('hidden');
+  _popupOpen = false;
+}
+
 // ── Canvas resize ─────────────────────────────────────────────────
 function resizeCanvas() {
   const area   = document.querySelector('.canvas-area');
@@ -730,7 +764,14 @@ function wireEvents() {
   // Tool buttons
   document.getElementById('tool-bucket').addEventListener('click', () => setTool('bucket'));
   document.getElementById('tool-eraser').addEventListener('click', () => setTool('eraser'));
-  document.getElementById('tool-brush').addEventListener('click',  () => setTool('brush'));
+  document.getElementById('tool-brush').addEventListener('click', () => {
+    if (isMobile()) {
+      if (_popupOpen) { closeThicknessPopup(); }
+      else { openThicknessPopup(); setTool('brush'); }
+    } else {
+      setTool('brush');
+    }
+  });
   document.getElementById('tool-undo').addEventListener('click', undo);
 
   // Thickness
@@ -793,7 +834,16 @@ function wireEvents() {
     el.addEventListener('click', () => playSound('click'), { capture: true });
   });
 
-  window.addEventListener('resize', () => { fixVH(); resizeCanvas(); updateCursor(); });
+  // Thickness popup buttons
+  document.querySelectorAll('#thickness-popup .thickness-pill').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setThickness(+btn.dataset.thickness);
+      closeThicknessPopup();
+    });
+  });
+
+  window.addEventListener('resize', () => { fixVH(); resizeCanvas(); updateCursor(); closeThicknessPopup(); });
   fixVH();
 }
 

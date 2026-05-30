@@ -1,0 +1,14 @@
+{
+  "_comment": "Pridaj Drive file ID každej omaľovánky. ID nájdeš v URL pri otvorení súboru v Drive: drive.google.com/file/d/FILE_ID/view. Súbory musia byť nastavené na 'Ktokoľvek s odkazom' (Anyone with link).",
+  "_folder": "https://drive.google.com/drive/folders/1tvjkUM5pfghGDv9F_Pyp-KhGq8RLwejh",
+  "files": [
+    { "id": "DRIVE_FILE_ID_1", "name": "Omaľovánka 1" },
+    { "id": "DRIVE_FILE_ID_2", "name": "Omaľovánka 2" },
+    { "id": "DRIVE_FILE_ID_3", "name": "Omaľovánka 3" },
+    { "id": "DRIVE_FILE_ID_4", "name": "Omaľovánka 4" },
+    { "id": "DRIVE_FILE_ID_5", "name": "Omaľovánka 5" },
+    { "id": "DRIVE_FILE_ID_6", "name": "Omaľovánka 6" },
+    { "id": "DRIVE_FILE_ID_7", "name": "Omaľovánka 7" },
+    { "id": "DRIVE_FILE_ID_8", "name": "Omaľovánka 8" }
+  ]
+}

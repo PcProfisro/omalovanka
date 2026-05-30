@@ -432,8 +432,8 @@ body {
   /* Hide desktop thickness group + separator on mobile */
   .tool-rail > .btn-group:first-child,
   .tool-rail > .rail-sep { display: none !important; }
-  /* Align tools group to the right */
-  .tool-rail { justify-content: flex-end !important; }
+  /* Align tools group to center */
+  .tool-rail { justify-content: center !important; }
 
   .palette-bar {
     grid-column: 1; grid-row: 3;

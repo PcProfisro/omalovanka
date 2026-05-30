@@ -695,10 +695,9 @@ function openThicknessPopup() {
   if (!popup || !btn) return;
 
   const r   = btn.getBoundingClientRect();
-  const pw  = 62; // popup width estimate
-  const ph  = 170; // popup height estimate (3 buttons + padding)
+  const pw  = 62;
+  const ph  = 170;
 
-  // Position above the button, centered
   const left = Math.max(4, Math.min(r.left + r.width / 2 - pw / 2, window.innerWidth - pw - 4));
   const top  = Math.max(4, r.top - ph - 8);
 
@@ -708,20 +707,24 @@ function openThicknessPopup() {
   popup.classList.remove('hidden');
   _popupOpen = true;
 
-  // Highlight active thickness in popup
   popup.querySelectorAll('.thickness-pill').forEach(b => {
     b.classList.toggle('tool-btn--active', +b.dataset.thickness === S.thickness);
   });
 
+  // Use 400ms delay to skip the originating tap's own click/touchend bubble
   setTimeout(() => {
     document.addEventListener('click', closeThicknessPopup, { once: true });
-  }, 10);
+    document.addEventListener('touchend', closeThicknessPopup, { once: true });
+  }, 400);
 }
 
 function closeThicknessPopup() {
   const popup = document.getElementById('thickness-popup');
   if (popup) popup.classList.add('hidden');
   _popupOpen = false;
+  // Remove both listeners (in case only one fired)
+  document.removeEventListener('click', closeThicknessPopup);
+  document.removeEventListener('touchend', closeThicknessPopup);
 }
 
 // ── Canvas resize ─────────────────────────────────────────────────

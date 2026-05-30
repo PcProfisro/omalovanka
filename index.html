@@ -2,7 +2,7 @@
 <html lang="sk">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Maľovanky – Jar</title>
   <meta name="description" content="Interaktívna omaľovánka pre deti — jarné motívy">
   <meta name="theme-color" content="#085475">
@@ -69,8 +69,8 @@
     <!-- LEFT: tool rail -->
     <aside class="tool-rail" id="tool-rail">
 
-      <!-- TOP GROUP: thickness pills -->
-      <div class="btn-group">
+      <!-- TOP GROUP: thickness pills (desktop) -->
+      <div class="btn-group" id="thick-group-desktop">
         <button class="tool-btn thickness-pill" id="thick-0" data-thickness="0" aria-label="Tenký štetec" title="Tenký">
           <span class="dot" style="width:5px;height:5px"></span>
         </button>
@@ -78,6 +78,19 @@
           <span class="dot" style="width:11px;height:11px"></span>
         </button>
         <button class="tool-btn thickness-pill" id="thick-2" data-thickness="2" aria-label="Hrubý štetec" title="Hrubý">
+          <span class="dot" style="width:18px;height:18px"></span>
+        </button>
+      </div>
+
+      <!-- MOBILE thickness row (hidden, shown when brush tapped) -->
+      <div class="mobile-thick-row" id="mobile-thick-row">
+        <button class="tool-btn thickness-pill" data-thickness="0" aria-label="Tenký">
+          <span class="dot" style="width:5px;height:5px"></span>
+        </button>
+        <button class="tool-btn thickness-pill" data-thickness="1" aria-label="Stredný">
+          <span class="dot" style="width:11px;height:11px"></span>
+        </button>
+        <button class="tool-btn thickness-pill" data-thickness="2" aria-label="Hrubý">
           <span class="dot" style="width:18px;height:18px"></span>
         </button>
       </div>
@@ -111,9 +124,10 @@
 
       <!-- MOBILE-ONLY extras -->
       <div class="rail-sep mobile-only"></div>
-      <button class="tool-btn mobile-only" id="btn-sound-m" aria-label="Zvuk" title="Zvuk">
+      <button class="tool-btn mobile-only" id="btn-undo-m" aria-label="Krok späť" title="Krok späť">
         <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 12h4l7-5v18l-7-5H6z"/><path d="M22 11a6 6 0 010 10"/><path d="M25 7a11 11 0 010 18"/>
+          <path d="M9 12l-5-5 5-5"/>
+          <path d="M4 7h15a8 8 0 010 16h-7"/>
         </svg>
       </button>
       <button class="tool-btn mobile-only" id="btn-gallery-m" aria-label="Galéria" title="Galéria">
@@ -214,6 +228,19 @@
       </div>
 
     </aside>
+
+    <!-- Mobile thickness bar — grid row above tool rail -->
+    <div class="mobile-thickness-bar hidden" id="thickness-popup">
+      <button class="tool-btn thickness-pill" data-thickness="0" aria-label="Tenký">
+        <span class="dot" style="width:5px;height:5px"></span>
+      </button>
+      <button class="tool-btn thickness-pill" data-thickness="1" aria-label="Stredný">
+        <span class="dot" style="width:11px;height:11px"></span>
+      </button>
+      <button class="tool-btn thickness-pill" data-thickness="2" aria-label="Hrubý">
+        <span class="dot" style="width:18px;height:18px"></span>
+      </button>
+    </div>
 
     <!-- BOTTOM: palette -->
     <div class="palette-bar" id="palette-bar"></div>

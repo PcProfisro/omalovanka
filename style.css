@@ -399,20 +399,30 @@ body {
   .toolbar__logo { display: none; }
   .toolbar__center { font-size: 15px; justify-content: center; }
 
+  /* Grid: canvas | [thickness bar] | tool rail | palette */
   .coloring-body {
     display: grid !important;
     grid-template-columns: 1fr;
-    grid-template-rows: 1fr 0px 56px var(--palette-h);
+    grid-template-rows: 1fr 56px var(--palette-h);
     overflow: hidden;
   }
+  /* When brush active, insert thickness bar row */
   .coloring-body.brush-active {
     grid-template-rows: 1fr 56px 56px var(--palette-h);
   }
-  .canvas-area { grid-column: 1; grid-row: 1; padding: 8px; overflow: hidden; }
-  .mobile-thickness-bar { grid-column: 1; grid-row: 2; overflow: hidden; }
-  .coloring-body:not(.brush-active) .mobile-thickness-bar { display: none; }
-  .tool-rail { grid-column: 1; grid-row: 3; }
-
+  .canvas-area {
+    grid-column: 1; grid-row: 1;
+    padding: 8px; overflow: hidden;
+  }
+  .mobile-thickness-bar {
+    grid-column: 1; grid-row: 2;
+  }
+  .coloring-body.brush-active .tool-rail {
+    grid-row: 3 !important;
+  }
+  .coloring-body.brush-active .palette-bar {
+    grid-row: 4 !important;
+  }
   .tool-rail {
     grid-column: 1; grid-row: 2;
     flex-direction: row; flex-wrap: nowrap;
@@ -420,7 +430,7 @@ body {
     border-right: 0;
     border-top: 1px solid rgba(9,84,117,.09);
     padding: 0 8px; overflow-x: auto; scrollbar-width: none;
-    justify-content: flex-start; gap: 4px;
+    justify-content: center; gap: 4px;
     background: rgba(255,255,255,.9);
     align-items: center;
     box-sizing: border-box;
@@ -430,22 +440,15 @@ body {
   .tool-rail .btn-group .tool-btn { flex-shrink: 0; }
   .tool-rail .rail-sep { width: 1.5px; height: 28px; margin: 0 2px; flex-shrink: 0; }
 
-  .action-rail { display: none; }
-
-  /* Hide desktop thickness group + separator on mobile */
+  /* Hide desktop thickness pills + separator */
   .tool-rail > .btn-group:first-child,
   .tool-rail > .rail-sep { display: none !important; }
-  /* Align tools group to center */
-  .tool-rail { justify-content: center !important; }
 
-  .palette-bar {
-    grid-column: 1; grid-row: 3;
-    padding: 0 8px;
-    padding-bottom: env(safe-area-inset-bottom, 0);
-    overflow: hidden;
-  }
-  .color-chip { flex: 1 1 0; max-width: 26px; min-width: 10px; }
-  .tool-btn { width: 46px; height: 46px; }
+  .action-rail { display: none; }
+
+  .palette-bar { grid-column: 1; grid-row: 3; padding: 0 8px; overflow: hidden; }
+  .color-chip  { flex: 1 1 0; max-width: 26px; min-width: 10px; }
+  .tool-btn    { width: 46px; height: 46px; }
   .tool-btn svg { width: 22px; height: 22px; }
 
   .mobile-only  { display: flex !important; }
@@ -455,6 +458,8 @@ body {
   .gallery__grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
   .toast { bottom: calc(var(--palette-h) + 8px); }
 }
+
+
 
 @media (max-width: 400px) {
   .gallery__grid { gap: 10px; }

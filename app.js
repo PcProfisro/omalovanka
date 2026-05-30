@@ -325,11 +325,14 @@ async function openColoring(i) {
 
     S.svgEl = svgEl;
 
-    resizeCanvas();   // sets canvas size + loads brush data
-    attachSVGHandlers(svgEl);
-    updateCursor();
-    refreshUndoBtn();
-    applyToolMode();
+    // Defer until after browser reflow (critical on iOS Safari)
+    requestAnimationFrame(() => {
+      resizeCanvas();
+      attachSVGHandlers(svgEl);
+      updateCursor();
+      refreshUndoBtn();
+      applyToolMode();
+    });
 
   } catch (e) {
     console.error('Failed to load SVG', i, e);
@@ -692,7 +695,10 @@ function resizeCanvas() {
   if (!area || !wrap) return;
 
   const r    = area.getBoundingClientRect();
-  const size = Math.max(Math.min(r.width, r.height) - 12, 80);
+  // Cap to actual viewport to prevent iOS Safari horizontal overflow
+  const maxDim = Math.min(window.innerWidth, window.innerHeight);
+  const avail  = Math.min(r.width, r.height, maxDim);
+  const size   = Math.max(avail - 12, 80);
   wrap.style.width  = size + 'px';
   wrap.style.height = size + 'px';
 

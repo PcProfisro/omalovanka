@@ -690,14 +690,21 @@ let _popupOpen = false;
 function isMobile() { return window.innerWidth <= 767; }
 
 function openThicknessPopup() {
-  const popup  = document.getElementById('thickness-popup');
-  const btn    = document.getElementById('tool-brush');
+  const popup = document.getElementById('thickness-popup');
+  const btn   = document.getElementById('tool-brush');
   if (!popup || !btn) return;
 
-  // Position popup above the brush button
-  const r = btn.getBoundingClientRect();
-  popup.style.left   = (r.left + r.width / 2 - 31) + 'px';
-  popup.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+  const r   = btn.getBoundingClientRect();
+  const pw  = 62; // popup width estimate
+  const ph  = 170; // popup height estimate (3 buttons + padding)
+
+  // Position above the button, centered
+  const left = Math.max(4, Math.min(r.left + r.width / 2 - pw / 2, window.innerWidth - pw - 4));
+  const top  = Math.max(4, r.top - ph - 8);
+
+  popup.style.left   = left + 'px';
+  popup.style.top    = top  + 'px';
+  popup.style.bottom = 'auto';
   popup.classList.remove('hidden');
   _popupOpen = true;
 
@@ -706,7 +713,6 @@ function openThicknessPopup() {
     b.classList.toggle('tool-btn--active', +b.dataset.thickness === S.thickness);
   });
 
-  // Close on outside click
   setTimeout(() => {
     document.addEventListener('click', closeThicknessPopup, { once: true });
   }, 10);
@@ -765,12 +771,12 @@ function wireEvents() {
   document.getElementById('tool-bucket').addEventListener('click', () => setTool('bucket'));
   document.getElementById('tool-eraser').addEventListener('click', () => setTool('eraser'));
   document.getElementById('tool-brush').addEventListener('click', () => {
-    if (isMobile()) {
-      if (_popupOpen) { closeThicknessPopup(); }
-      else { openThicknessPopup(); setTool('brush'); }
-    } else {
-      setTool('brush');
-    }
+    if (_popupOpen) { closeThicknessPopup(); return; }
+    setTool('brush');
+    // Show popup on mobile OR always if thickness pills are hidden
+    const pills = document.querySelector('.tool-rail > .btn-group:first-child');
+    const pillsHidden = !pills || getComputedStyle(pills).display === 'none';
+    if (pillsHidden) openThicknessPopup();
   });
   document.getElementById('tool-undo').addEventListener('click', undo);
 

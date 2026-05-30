@@ -429,9 +429,11 @@ body {
 
   .action-rail { display: none; }
 
-  /* Hide desktop thickness group on mobile — shown via popup instead */
+  /* Hide desktop thickness group + separator on mobile */
   .tool-rail > .btn-group:first-child,
-  .tool-rail > .rail-sep:first-of-type { display: none !important; }
+  .tool-rail > .rail-sep { display: none !important; }
+  /* Align tools group to the right */
+  .tool-rail { justify-content: flex-end !important; }
 
   .palette-bar {
     grid-column: 1; grid-row: 3;

@@ -412,7 +412,7 @@ function clearHover() {
 function setTool(tool) {
   clearHover();
   S.tool = tool;
-  if (tool !== 'brush') closeThicknessPopup();
+  if (tool !== 'brush') closeThickRail();
   document.getElementById('tool-bucket').classList.toggle('tool-btn--active', tool === 'bucket');
   document.getElementById('tool-eraser').classList.toggle('tool-btn--active', tool === 'eraser');
   document.getElementById('tool-brush').classList.toggle('tool-btn--active',  tool === 'brush');
@@ -685,30 +685,40 @@ function fixVH() {
   document.documentElement.style.setProperty('--real-vh', (window.innerHeight * 0.01) + 'px');
 }
 
-// ── Thickness popup (mobile) ──────────────────────────────────────
-let _popupOpen = false;
+// ── Thickness rail (mobile) ───────────────────────────────────────
+let _thickOpen = false;
 
-function openThicknessPopup() {
-  const popup = document.getElementById('thickness-popup');
-  const body  = document.querySelector('.coloring-body');
-  if (!popup || !body) return;
+function openThickRail() {
+  const rail = document.getElementById('tool-rail');
+  const body = document.querySelector('.coloring-body');
+  const row  = document.getElementById('mobile-thick-row');
+  if (!rail || !body || !row) return;
 
-  popup.querySelectorAll('.thickness-pill').forEach(b => {
+  // Update active state in mobile row
+  row.querySelectorAll('.thickness-pill').forEach(b => {
     b.classList.toggle('tool-btn--active', +b.dataset.thickness === S.thickness);
   });
 
-  body.classList.add('brush-active');
-  popup.classList.remove('hidden');
-  _popupOpen = true;
+  rail.classList.add('thick-open');
+  body.classList.add('thick-open');
+  _thickOpen = true;
+  resizeCanvas();
 }
 
-function closeThicknessPopup() {
-  const popup = document.getElementById('thickness-popup');
-  const body  = document.querySelector('.coloring-body');
-  if (popup) popup.classList.add('hidden');
-  if (body)  body.classList.remove('brush-active');
-  _popupOpen = false;
+function closeThickRail() {
+  const rail = document.getElementById('tool-rail');
+  const body = document.querySelector('.coloring-body');
+  if (!rail || !body) return;
+  rail.classList.remove('thick-open');
+  body.classList.remove('thick-open');
+  _thickOpen = false;
+  resizeCanvas();
 }
+
+// Keep old names as aliases so wireEvents still works
+function openThicknessPopup()  { openThickRail(); }
+function closeThicknessPopup() { closeThickRail(); }
+let _popupOpen = false; // kept for compat — use _thickOpen internally
 
 // ── Canvas resize ─────────────────────────────────────────────────
 function resizeCanvas() {
@@ -756,21 +766,22 @@ function wireEvents() {
   // Tool buttons
   document.getElementById('tool-bucket').addEventListener('click', () => setTool('bucket'));
   document.getElementById('tool-eraser').addEventListener('click', () => setTool('eraser'));
-  // Brush button — show thickness bar on mobile
+  // Brush button — expand rail on mobile
   const brushBtn = document.getElementById('tool-brush');
   brushBtn.addEventListener('touchstart', (e) => {
     e.preventDefault();
     e.stopPropagation();
     playSound('click');
-    if (S.tool === 'brush' && _popupOpen) { closeThicknessPopup(); return; }
-    setTool('brush');
-    openThicknessPopup();
+    if (_thickOpen) { closeThickRail(); }
+    else { setTool('brush'); openThickRail(); }
   }, { passive: false });
   brushBtn.addEventListener('click', () => {
-    if (S.tool === 'brush' && _popupOpen) { closeThicknessPopup(); return; }
+    // Desktop: check if thick group visible
+    const desktopGroup = document.getElementById('thick-group-desktop');
+    const desktopVisible = desktopGroup && getComputedStyle(desktopGroup).display !== 'none';
+    if (_thickOpen) { closeThickRail(); return; }
     setTool('brush');
-    const pills = document.querySelector('.tool-rail > .btn-group:first-child');
-    if (!pills || getComputedStyle(pills).display === 'none') openThicknessPopup();
+    if (!desktopVisible) openThickRail();
   });
   document.getElementById('tool-undo').addEventListener('click', undo);
 
@@ -787,7 +798,7 @@ function wireEvents() {
   document.getElementById('btn-clear').addEventListener('click', askClear);
 
   // Action rail (mobile)
-  document.getElementById('btn-sound-m').addEventListener('click', toggleSound);
+  document.getElementById('btn-undo-m').addEventListener('click', undo);
   document.getElementById('btn-gallery-m').addEventListener('click', goToGallery);
   document.getElementById('btn-print-m').addEventListener('click', printColoring);
   document.getElementById('btn-save-m').addEventListener('click', savePNG);
@@ -835,18 +846,18 @@ function wireEvents() {
   });
 
   // Thickness popup buttons
-  document.querySelectorAll('#thickness-popup .thickness-pill').forEach(btn => {
+  document.querySelectorAll('#thickness-popup .thickness-pill, #mobile-thick-row .thickness-pill').forEach(btn => {
     btn.addEventListener('touchstart', (e) => {
       e.preventDefault();
       e.stopPropagation();
       setThickness(+btn.dataset.thickness);
       playSound('click');
-      closeThicknessPopup();
+      closeThickRail();
     }, { passive: false });
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       setThickness(+btn.dataset.thickness);
-      closeThicknessPopup();
+      closeThickRail();
     });
   });
 

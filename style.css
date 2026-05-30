@@ -45,6 +45,11 @@ body {
   background: var(--brand-bg);
   -webkit-font-smoothing: antialiased;
 }
+/* JS sets --real-vh via window.innerHeight for mobile Safari fix */
+#view-gallery, #view-coloring {
+  height: 100vh;
+  height: calc(var(--real-vh, 1vh) * 100);
+}
 
 .hidden { display: none !important; }
 
@@ -97,7 +102,9 @@ body {
    GALLERY VIEW
 ══════════════════════════════════════════════════════════════ */
 #view-gallery {
-  display: flex; flex-direction: column; height: 100vh;
+  display: flex; flex-direction: column;
+  height: 100vh;
+  height: calc(var(--real-vh, 1vh) * 100);
   background:
     radial-gradient(ellipse at 12% 28%, rgba(163,217,119,.28) 0, transparent 52%),
     radial-gradient(ellipse at 88% 72%, rgba(184,225,235,.38) 0, transparent 52%),
@@ -164,13 +171,15 @@ body {
    COLORING VIEW
 ══════════════════════════════════════════════════════════════ */
 #view-coloring {
-  display: flex; flex-direction: column; height: 100vh;
+  display: flex; flex-direction: column;
+  height: 100vh;
+  height: calc(var(--real-vh, 1vh) * 100);
 }
 .coloring-body {
-  flex: 1; display: grid;
+  flex: 1 1 0; display: grid;
   grid-template-columns: var(--rail-w) 1fr var(--rail-w);
   grid-template-rows: 1fr var(--palette-h);
-  min-height: 0;
+  min-height: 0; overflow: hidden;
   background: var(--brand-bg);
 }
 
@@ -388,14 +397,14 @@ body {
     grid-column: 1; grid-row: 2;
     flex-direction: row; border-right: 0;
     border-top: 1px solid rgba(9,84,117,.09);
-    padding: 0 12px; overflow-x: auto; scrollbar-width: none;
-    justify-content: space-between;
+    padding: 0 10px; overflow-x: auto; scrollbar-width: none;
+    justify-content: flex-start; gap: 6px;
     background: rgba(255,255,255,.85);
-    gap: 0;
+    align-items: center;
   }
   .tool-rail::-webkit-scrollbar { display: none; }
-  .tool-rail .btn-group { flex-direction: row; gap: 8px; flex: 0 0 auto; }
-  .tool-rail .rail-sep { width: 1.5px; height: 36px; margin: 0 4px; }
+  .tool-rail .btn-group { flex-direction: row; gap: 6px; flex: 0 0 auto; width: auto; }
+  .tool-rail .rail-sep { width: 1.5px; height: 36px; margin: 0 2px; flex-shrink: 0; }
 
   .action-rail { display: none; }
 

@@ -679,6 +679,11 @@ function playSound(name) {
   a.play().catch(() => {});
 }
 
+// ── Viewport height fix (mobile Safari 100vh bug) ───────────────
+function fixVH() {
+  document.documentElement.style.setProperty('--real-vh', (window.innerHeight * 0.01) + 'px');
+}
+
 // ── Canvas resize ─────────────────────────────────────────────────
 function resizeCanvas() {
   const area  = document.querySelector('.canvas-area');
@@ -780,7 +785,8 @@ function wireEvents() {
     el.addEventListener('click', () => playSound('click'), { capture: true });
   });
 
-  window.addEventListener('resize', () => { resizeCanvas(); updateCursor(); });
+  window.addEventListener('resize', () => { fixVH(); resizeCanvas(); updateCursor(); });
+  fixVH();
 }
 
 // ── Boot ──────────────────────────────────────────────────────────

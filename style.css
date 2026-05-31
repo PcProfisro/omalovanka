@@ -273,6 +273,17 @@ body {
   background: rgba(255,255,255,.65);
   border-left: 1px solid rgba(9,84,117,.09);
 }
+/* Push tool-rail buttons to the bottom half (desktop), mirroring right action-rail */
+.tool-rail .btn-group {
+  flex: 1;
+  justify-content: center;
+}
+/* Desktop: swap eraser and bucket order in left rail column */
+@media (min-width: 768px) {
+  .tool-rail #tool-eraser { order: 1; }
+  .tool-rail #tool-brush  { order: 2; }
+  .tool-rail #tool-bucket { order: 3; }
+}
 /* Button group — fills its half and centres content */
 .btn-group {
   flex: 1;
@@ -396,6 +407,21 @@ body {
 ══════════════════════════════════════════════════════════════ */
 .mobile-only { display: none !important; }
 .mobile-thick-row { display: none; }
+.tool-rail > #thick-group-desktop { display: none !important; }
+
+/* Thickness floating popup — shared by mobile + desktop */
+.mobile-thick-row {
+  position: fixed;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--sh-lg);
+  z-index: 200;
+}
 
 @media (max-width: 767px) {
   :root { --toolbar-h: 48px; --palette-h: 52px; --rail-w: 0px; }
@@ -430,25 +456,8 @@ body {
 
   .action-rail { display: none; }
 
-  /* Hide desktop thickness group + separator on mobile */
-  .tool-rail > #thick-group-desktop,
+  /* Hide separator on mobile */
   .tool-rail > .rail-sep { display: none !important; }
-
-  /* Mobile thickness row — floating popup above brush button */
-  .mobile-thick-row {
-    display: none;
-    position: fixed;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 10px 12px;
-    background: var(--paper);
-    border: 1px solid var(--border);
-    border-radius: var(--r-xl);
-    box-shadow: var(--sh-lg);
-    z-index: 200;
-  }
 
   /* Align tools group to center */
   .tool-rail { justify-content: center !important; }

@@ -728,7 +728,7 @@ function fixVH() {
 let _thickOpen = false;
 
 function openThickRail() {
-  const row     = document.getElementById('mobile-thick-row');
+  const row      = document.getElementById('mobile-thick-row');
   const brushBtn = document.getElementById('tool-brush');
   if (!row || !brushBtn) return;
 
@@ -737,17 +737,29 @@ function openThickRail() {
     b.classList.toggle('tool-btn--active', +b.dataset.thickness === S.thickness);
   });
 
-  // Position floating popup above the brush button
-  const rect     = brushBtn.getBoundingClientRect();
-  const popW     = 3 * 54 + 2 * 10 + 24; // 3 pills + gaps + padding ≈ 206px
-  const centerX  = rect.left + rect.width / 2;
-  const left     = Math.max(8, Math.min(centerX - popW / 2, window.innerWidth - popW - 8));
-  const bottom   = window.innerHeight - rect.top + 8;
+  const rect    = brushBtn.getBoundingClientRect();
+  const isMobile = window.innerWidth <= 767;
 
-  row.style.left   = left + 'px';
-  row.style.bottom = bottom + 'px';
+  if (isMobile) {
+    // Above the brush button (centered), horizontal
+    const popW   = 3 * 54 + 2 * 10 + 24;
+    const centerX = rect.left + rect.width / 2;
+    const left   = Math.max(8, Math.min(centerX - popW / 2, window.innerWidth - popW - 8));
+    row.style.left        = left + 'px';
+    row.style.bottom      = (window.innerHeight - rect.top + 8) + 'px';
+    row.style.top         = '';
+    row.style.flexDirection = 'row';
+  } else {
+    // To the right of the brush button, vertical column
+    const popH   = 3 * 54 + 2 * 10 + 24;
+    const top    = Math.max(8, Math.min(rect.top + rect.height / 2 - popH / 2, window.innerHeight - popH - 8));
+    row.style.left        = (rect.right + 8) + 'px';
+    row.style.top         = top + 'px';
+    row.style.bottom      = '';
+    row.style.flexDirection = 'column';
+  }
+
   row.style.display = 'flex';
-
   _thickOpen = true;
 }
 
@@ -818,12 +830,9 @@ function wireEvents() {
     else { setTool('brush'); openThickRail(); }
   }, { passive: false });
   brushBtn.addEventListener('click', () => {
-    // Desktop: check if thick group visible
-    const desktopGroup = document.getElementById('thick-group-desktop');
-    const desktopVisible = desktopGroup && getComputedStyle(desktopGroup).display !== 'none';
     if (_thickOpen) { closeThickRail(); return; }
     setTool('brush');
-    if (!desktopVisible) openThickRail();
+    openThickRail();
   });
   document.getElementById('tool-undo').addEventListener('click', undo);
 
@@ -904,6 +913,17 @@ function wireEvents() {
   });
 
   window.addEventListener('resize', () => { fixVH(); resizeCanvas(); updateCursor(); closeThicknessPopup(); });
+
+  // Close thickness popup when clicking outside it
+  document.addEventListener('click', (e) => {
+    if (!_thickOpen) return;
+    const row = document.getElementById('mobile-thick-row');
+    const brushBtn = document.getElementById('tool-brush');
+    if (row && !row.contains(e.target) && brushBtn && !brushBtn.contains(e.target)) {
+      closeThickRail();
+    }
+  });
+
   fixVH();
 }
 

@@ -211,9 +211,19 @@ async function loadThumb(i, card) {
     const svg   = doc.querySelector('svg');
     applyColorMap(svg, storedColors(i));
     svg.removeAttribute('width'); svg.removeAttribute('height');
-    svg.style.cssText = 'width:100%;height:100%;display:block;padding:6px;pointer-events:none';
+    svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;padding:6px;pointer-events:none';
+    thumbDiv.style.position = 'relative';
     thumbDiv.innerHTML = '';
     thumbDiv.appendChild(svg);
+
+    // Overlay brush strokes saved as PNG
+    const brushData = localStorage.getItem(STORAGE_PRE + 'canvas-' + i);
+    if (brushData) {
+      const overlay = document.createElement('img');
+      overlay.src = brushData;
+      overlay.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;border-radius:inherit';
+      thumbDiv.appendChild(overlay);
+    }
   } catch (e) { console.warn('Thumb fail', i, e); }
 }
 
@@ -253,11 +263,33 @@ function getCanvasPos(e) {
 
 // ── Brush drawing ─────────────────────────────────────────────────
 function startDraw(e) {
-  if (S.tool !== 'brush') return;
+  if (S.tool !== 'brush' && S.tool !== 'eraser') return;
   e.preventDefault();
+  if (_thickOpen) closeThickRail();
   S.drawing = true;
   const pos = getCanvasPos(e);
   S.lastX = pos.x; S.lastY = pos.y;
+  S._eraserMoved = false;
+
+  // If eraser: also check SVG region under pointer and erase fill
+  if (S.tool === 'eraser' && S.svgEl) {
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const canvas  = getCanvas();
+    // Temporarily expose SVG for hit-testing
+    if (canvas)   canvas.style.pointerEvents  = 'none';
+    if (S.svgEl)  S.svgEl.style.pointerEvents = 'all';
+    const hit  = document.elementFromPoint(clientX, clientY);
+    if (canvas)   canvas.style.pointerEvents  = 'all';
+    if (S.svgEl)  S.svgEl.style.pointerEvents = 'none';
+    const path = hit && hit.closest ? hit.closest('[data-region]') : null;
+    if (path && path.getAttribute('data-locked') !== 'true') {
+      path.setAttribute('fill', '#ffffff');
+      path.style.opacity = '';
+      persistColors();
+    }
+  }
+
   // Save snapshot for undo
   const ctx = getCtx();
   const canvas = getCanvas();
@@ -268,18 +300,25 @@ function startDraw(e) {
 }
 
 function doDraw(e) {
-  if (!S.drawing || S.tool !== 'brush') return;
+  if (!S.drawing || (S.tool !== 'brush' && S.tool !== 'eraser')) return;
   e.preventDefault();
   const pos = getCanvasPos(e);
   const ctx = getCtx();
   ctx.beginPath();
   ctx.moveTo(S.lastX, S.lastY);
   ctx.lineTo(pos.x, pos.y);
-  ctx.strokeStyle = S.color;
-  ctx.lineWidth   = THICKNESSES[S.thickness].px;
-  ctx.lineCap     = 'round';
-  ctx.lineJoin    = 'round';
+  ctx.lineWidth = THICKNESSES[S.thickness].px * (S.tool === 'eraser' ? 3 : 1);
+  ctx.lineCap   = 'round';
+  ctx.lineJoin  = 'round';
+  if (S.tool === 'eraser') {
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.strokeStyle = 'rgba(0,0,0,1)';
+  } else {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = S.color;
+  }
   ctx.stroke();
+  ctx.globalCompositeOperation = 'source-over';
   S.lastX = pos.x; S.lastY = pos.y;
 }
 
@@ -340,11 +379,11 @@ async function openColoring(i) {
 function applyToolMode() {
   const canvas = getCanvas();
   if (!canvas) return;
-  const isBrush = S.tool === 'brush';
-  // Canvas captures events in brush mode; SVG regions do in bucket/eraser mode
-  canvas.style.pointerEvents = isBrush ? 'all' : 'none';
+  const isDrawMode = S.tool === 'brush' || S.tool === 'eraser';
+  // Canvas captures events in brush/eraser mode; SVG regions do in bucket mode
+  canvas.style.pointerEvents = isDrawMode ? 'all' : 'none';
   if (S.svgEl) {
-    S.svgEl.style.pointerEvents = isBrush ? 'none' : 'all';
+    S.svgEl.style.pointerEvents = isDrawMode ? 'none' : 'all';
   }
 }
 

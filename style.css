@@ -395,6 +395,7 @@ body {
    MOBILE  (< 768px)
 ══════════════════════════════════════════════════════════════ */
 .mobile-only { display: none !important; }
+.mobile-thick-row { display: none; }
 
 @media (max-width: 767px) {
   :root { --toolbar-h: 48px; --palette-h: 52px; --rail-w: 0px; }
@@ -433,36 +434,20 @@ body {
   .tool-rail > #thick-group-desktop,
   .tool-rail > .rail-sep { display: none !important; }
 
-  /* Mobile thickness row — hidden by default */
+  /* Mobile thickness row — floating popup above brush button */
   .mobile-thick-row {
     display: none;
+    position: fixed;
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 16px;
-    width: 100%;
-    height: 56px;
-    border-bottom: 1px solid rgba(9,84,117,.10);
-    flex-shrink: 0;
-  }
-
-  /* Expanded rail when brush active */
-  .tool-rail.thick-open {
-    flex-direction: column !important;
-    height: 112px !important;
-    align-items: stretch !important;
-    overflow: visible !important;
-    justify-content: flex-start !important;
-  }
-  .tool-rail.thick-open .mobile-thick-row { display: flex; }
-  .tool-rail.thick-open > .btn-group {
-    height: 56px; align-items: center; justify-content: center;
-    gap: 4px; flex: 0 0 56px;
-  }
-
-  /* Grid row expands with rail */
-  .coloring-body.thick-open {
-    grid-template-rows: 1fr 112px var(--palette-h);
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    box-shadow: var(--sh-lg);
+    z-index: 200;
   }
 
   /* Align tools group to center */

@@ -689,30 +689,33 @@ function fixVH() {
 let _thickOpen = false;
 
 function openThickRail() {
-  const rail = document.getElementById('tool-rail');
-  const body = document.querySelector('.coloring-body');
-  const row  = document.getElementById('mobile-thick-row');
-  if (!rail || !body || !row) return;
+  const row     = document.getElementById('mobile-thick-row');
+  const brushBtn = document.getElementById('tool-brush');
+  if (!row || !brushBtn) return;
 
-  // Update active state in mobile row
+  // Update active state
   row.querySelectorAll('.thickness-pill').forEach(b => {
     b.classList.toggle('tool-btn--active', +b.dataset.thickness === S.thickness);
   });
 
-  rail.classList.add('thick-open');
-  body.classList.add('thick-open');
+  // Position floating popup above the brush button
+  const rect     = brushBtn.getBoundingClientRect();
+  const popW     = 3 * 54 + 2 * 10 + 24; // 3 pills + gaps + padding ≈ 206px
+  const centerX  = rect.left + rect.width / 2;
+  const left     = Math.max(8, Math.min(centerX - popW / 2, window.innerWidth - popW - 8));
+  const bottom   = window.innerHeight - rect.top + 8;
+
+  row.style.left   = left + 'px';
+  row.style.bottom = bottom + 'px';
+  row.style.display = 'flex';
+
   _thickOpen = true;
-  resizeCanvas();
 }
 
 function closeThickRail() {
-  const rail = document.getElementById('tool-rail');
-  const body = document.querySelector('.coloring-body');
-  if (!rail || !body) return;
-  rail.classList.remove('thick-open');
-  body.classList.remove('thick-open');
+  const row = document.getElementById('mobile-thick-row');
+  if (row) row.style.display = 'none';
   _thickOpen = false;
-  resizeCanvas();
 }
 
 // Keep old names as aliases so wireEvents still works

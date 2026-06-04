@@ -161,11 +161,19 @@ body {
   font-size: 12px; font-weight: 700;
   color: var(--text-muted); letter-spacing: .04em;
 }
-.gallery-card__badge {
+/* Flower gallery icon — center circle fills with button bg */
+#btn-gallery .flower-center,
+#btn-gallery-m .flower-center { fill: var(--brand-bg); }
+#btn-gallery.tool-btn--active .flower-center,
+#btn-gallery-m.tool-btn--active .flower-center { fill: var(--brand); }
+
   display: inline-flex; align-items: center; gap: 4px;
   background: var(--orange); color: #fff;
   font-size: 9px; font-weight: 700; letter-spacing: .05em;
   padding: 2px 7px; border-radius: var(--r-full);
+}
+.gallery-card__badge--done {
+  background: var(--green);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -224,6 +232,9 @@ body {
   background: currentColor;
   display: block;
   flex-shrink: 0;
+}
+.thickness-pill .dot--square {
+  border-radius: 2px;
 }
 .thickness-pill.tool-btn--active .dot { background: #fff; }
 
@@ -314,7 +325,7 @@ body {
   box-shadow: var(--sh-sm);
   padding: 0; cursor: pointer; flex-shrink: 0;
 }
-.tool-btn svg { width: 26px; height: 26px; pointer-events: none; }
+.tool-btn svg { width: 32px; height: 32px; pointer-events: none; }
 .tool-btn:hover  { transform: translateY(-2px); box-shadow: var(--sh-md); }
 .tool-btn:active { transform: scale(.93); }
 .tool-btn--active {
@@ -470,7 +481,7 @@ body {
   }
   .color-chip { flex: 1 1 0; max-width: 26px; min-width: 10px; }
   .tool-btn { width: 46px; height: 46px; }
-  .tool-btn svg { width: 22px; height: 22px; }
+  .tool-btn svg { width: 28px; height: 28px; }
 
   .mobile-only  { display: flex !important; }
   .desktop-only { display: none !important; }

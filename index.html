@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Maľovanky – Jar</title>
+  <title>Maľovanky</title>
   <meta name="description" content="Interaktívna omaľovánka pre deti — jarné motívy">
   <meta name="theme-color" content="#085475">
   <link rel="stylesheet" href="style.css">
@@ -23,7 +23,7 @@
     <div class="toolbar__left desktop-only">
       <img src="assets/logo-edualf-light.svg" alt="eduAlf" class="toolbar__logo">
     </div>
-    <div class="toolbar__center">MAĽOVANKY – JAR</div>
+    <div class="toolbar__center">MAĽOVANKY</div>
     <div class="toolbar__right">
       <button class="icon-btn desktop-only" id="gallery-fullscreen" aria-label="Celá obrazovka">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -57,7 +57,7 @@
     <div class="toolbar__left desktop-only">
       <img src="assets/logo-edualf-light.svg" alt="eduAlf" class="toolbar__logo">
     </div>
-    <div class="toolbar__center">MAĽOVANKY – JAR</div>
+    <div class="toolbar__center">MAĽOVANKY</div>
     <div class="toolbar__right">
       <button class="icon-btn" id="btn-fullscreen" aria-label="Celá obrazovka" style="pointer-events:none;opacity:0.45;cursor:default">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -130,12 +130,6 @@
           </svg>
         </button>
         <!-- MOBILE-ONLY extras — inside btn-group so they stay in the row when thick-open -->
-        <button class="tool-btn mobile-only" id="btn-undo-m" aria-label="Krok späť" title="Krok späť">
-          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 12l-5-5 5-5"/>
-            <path d="M4 7h15a8 8 0 010 16h-7"/>
-          </svg>
-        </button>
         <button class="tool-btn mobile-only" id="btn-print-m" aria-label="Tlačiť">
           <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
             <rect x="8" y="4" width="16" height="8" rx="1"></rect>
@@ -157,12 +151,21 @@
             <path d="M13 14v10M19 14v10"/>
           </svg>
         </button>
+        <button class="tool-btn mobile-only" id="btn-undo-m" aria-label="Krok späť" title="Krok späť">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 12l-5-5 5-5"/>
+            <path d="M4 7h15a8 8 0 010 16h-7"/>
+          </svg>
+        </button>
         <button class="tool-btn mobile-only" id="btn-gallery-m" aria-label="Galéria" title="Galéria">
-          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
-            <rect x="3" y="5" width="10" height="10" rx="1.5"></rect>
-            <rect x="17" y="5" width="12" height="10" rx="1.5"></rect>
-            <rect x="3" y="18" width="12" height="9" rx="1.5"></rect>
-            <rect x="19" y="18" width="10" height="9" rx="1.5"></rect>
+          <svg viewBox="4 4 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <ellipse cx="16" cy="10.5" rx="3" ry="5"></ellipse>
+            <ellipse cx="20.8" cy="13.3" rx="3" ry="5" transform="rotate(60 20.8 13.3)"></ellipse>
+            <ellipse cx="20.8" cy="18.8" rx="3" ry="5" transform="rotate(120 20.8 18.8)"></ellipse>
+            <ellipse cx="16" cy="21.5" rx="3" ry="5"></ellipse>
+            <ellipse cx="11.2" cy="18.8" rx="3" ry="5" transform="rotate(240 11.2 18.8)"></ellipse>
+            <ellipse cx="11.2" cy="13.3" rx="3" ry="5" transform="rotate(300 11.2 13.3)"></ellipse>
+            <circle cx="16" cy="16" r="4.5" class="flower-center"></circle>
           </svg>
         </button>
       </div>
@@ -208,16 +211,8 @@
 
       <div class="rail-sep"></div>
 
-      <!-- BOTTOM GROUP: management actions -->
+      <!-- BOTTOM GROUP: management actions (order: Kôš → Späť → Galéria) -->
       <div class="btn-group">
-        <button class="tool-btn" id="btn-gallery" aria-label="Galéria" title="Späť do galérie">
-          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
-            <rect x="3" y="5" width="10" height="10" rx="1.5"></rect>
-            <rect x="17" y="5" width="12" height="10" rx="1.5"></rect>
-            <rect x="3" y="18" width="12" height="9" rx="1.5"></rect>
-            <rect x="19" y="18" width="10" height="9" rx="1.5"></rect>
-          </svg>
-        </button>
         <button class="tool-btn" id="btn-clear" aria-label="Vymazať všetko" title="Vymazať všetky farby">
           <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 8h22"/>
@@ -230,6 +225,17 @@
           <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 12l-5-5 5-5"/>
             <path d="M4 7h15a8 8 0 010 16h-7"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="btn-gallery" aria-label="Galéria" title="Späť do galérie">
+          <svg viewBox="4 4 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <ellipse cx="16" cy="10.5" rx="3" ry="5"></ellipse>
+            <ellipse cx="20.8" cy="13.3" rx="3" ry="5" transform="rotate(60 20.8 13.3)"></ellipse>
+            <ellipse cx="20.8" cy="18.8" rx="3" ry="5" transform="rotate(120 20.8 18.8)"></ellipse>
+            <ellipse cx="16" cy="21.5" rx="3" ry="5"></ellipse>
+            <ellipse cx="11.2" cy="18.8" rx="3" ry="5" transform="rotate(240 11.2 18.8)"></ellipse>
+            <ellipse cx="11.2" cy="13.3" rx="3" ry="5" transform="rotate(300 11.2 13.3)"></ellipse>
+            <circle cx="16" cy="16" r="4.5" class="flower-center"></circle>
           </svg>
         </button>
       </div>
@@ -246,6 +252,19 @@
       </button>
       <button class="tool-btn thickness-pill" data-thickness="2" aria-label="Hrubý">
         <span class="dot" style="width:18px;height:18px"></span>
+      </button>
+    </div>
+
+    <!-- Eraser thickness popup -->
+    <div class="mobile-thick-row" id="eraser-thick-row">
+      <button class="tool-btn thickness-pill" data-ethickness="0" aria-label="Tenká guma">
+        <span class="dot dot--square" style="width:5px;height:5px"></span>
+      </button>
+      <button class="tool-btn thickness-pill tool-btn--active" data-ethickness="1" aria-label="Stredná guma">
+        <span class="dot dot--square" style="width:11px;height:11px"></span>
+      </button>
+      <button class="tool-btn thickness-pill" data-ethickness="2" aria-label="Hrubá guma">
+        <span class="dot dot--square" style="width:18px;height:18px"></span>
       </button>
     </div>
 

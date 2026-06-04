@@ -103,7 +103,9 @@ const S = {
   tool:        'bucket',     // 'bucket' | 'eraser' | 'brush'
   color:       '#9b7fd6',
   thickness:   1,            // 0 | 1 | 2
+  eraserThickness: 1,        // 0 | 1 | 2
   sound:       true,
+  applausePlayed: false,
   undoStack:   [],           // [{type:'svg', path, oldFill} | {type:'brush', imageData}]
   svgEl:       null,
   svgCache:    {},
@@ -134,6 +136,15 @@ function persistColors() {
 function hasProgress(i) {
   return Object.keys(storedColors(i)).length > 0 ||
          !!localStorage.getItem(STORAGE_PRE + 'canvas-' + i);
+}
+function isCompleted(i) {
+  return !!localStorage.getItem(STORAGE_PRE + 'done-' + i);
+}
+function saveCompletion(i) {
+  localStorage.setItem(STORAGE_PRE + 'done-' + i, '1');
+}
+function clearCompletion(i) {
+  localStorage.removeItem(STORAGE_PRE + 'done-' + i);
 }
 function saveBrushData() {
   const canvas = document.getElementById('draw-canvas');
@@ -190,13 +201,15 @@ function buildGallery() {
     const card = document.createElement('div');
     card.className = 'gallery-card';
     card.dataset.index = i;
-    const started = hasProgress(i);
+    const started   = hasProgress(i);
+    const completed = isCompleted(i);
     card.innerHTML =
       '<div class="gallery-card__thumb"><div class="thumb-placeholder">🎨</div></div>' +
-      '<div class="gallery-card__footer">' +
-        '<span class="gallery-card__num">' + label + '</span>' +
-        (started ? '<span class="gallery-card__badge">MAĽUJEM</span>' : '') +
-      '</div>';
+      (started
+        ? '<div class="gallery-card__footer"><span class="gallery-card__badge' +
+          (completed ? ' gallery-card__badge--done' : '') + '">' +
+          (completed ? 'VYMAĽOVANÉ' : 'MAĽUJEM') + '</span></div>'
+        : '');
     card.addEventListener('click', () => openColoring(i));
     grid.appendChild(card);
     loadThumb(i, card);
@@ -266,6 +279,7 @@ function startDraw(e) {
   if (S.tool !== 'brush' && S.tool !== 'eraser') return;
   e.preventDefault();
   if (_thickOpen) closeThickRail();
+  if (_eraserThickOpen) closeEraserThickRail();
   S.drawing = true;
   const pos = getCanvasPos(e);
   S.lastX = pos.x; S.lastY = pos.y;
@@ -297,6 +311,18 @@ function startDraw(e) {
   S.undoStack.push({ type: 'brush', imageData: snap });
   if (S.undoStack.length > 60) S.undoStack.shift();
   refreshUndoBtn();
+
+  // Brush: prepare offscreen canvas so opacity is uniform per stroke
+  if (S.tool === 'brush') {
+    S.persistentSnap = snap;
+    if (!S.offCanvas || S.offCanvas.width !== canvas.width || S.offCanvas.height !== canvas.height) {
+      S.offCanvas = document.createElement('canvas');
+      S.offCanvas.width  = canvas.width;
+      S.offCanvas.height = canvas.height;
+    } else {
+      S.offCanvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
 }
 
 function doDraw(e) {
@@ -304,21 +330,40 @@ function doDraw(e) {
   e.preventDefault();
   const pos = getCanvasPos(e);
   const ctx = getCtx();
-  ctx.beginPath();
-  ctx.moveTo(S.lastX, S.lastY);
-  ctx.lineTo(pos.x, pos.y);
-  ctx.lineWidth = THICKNESSES[S.thickness].px * (S.tool === 'eraser' ? 3 : 1);
-  ctx.lineCap   = 'round';
-  ctx.lineJoin  = 'round';
+
   if (S.tool === 'eraser') {
+    ctx.beginPath();
+    ctx.moveTo(S.lastX, S.lastY);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.lineWidth = THICKNESSES[S.eraserThickness].px * 3;
+    ctx.lineCap   = 'round';
+    ctx.lineJoin  = 'round';
     ctx.globalCompositeOperation = 'destination-out';
+    ctx.globalAlpha = 1;
     ctx.strokeStyle = 'rgba(0,0,0,1)';
-  } else {
+    ctx.stroke();
     ctx.globalCompositeOperation = 'source-over';
-    ctx.strokeStyle = S.color;
+    ctx.globalAlpha = 1;
+  } else {
+    // Draw each segment onto the offscreen canvas at full opacity,
+    // then composite the whole stroke at 0.8 — opacity stays uniform
+    // regardless of how fast or slow the brush moves.
+    const offCtx = S.offCanvas.getContext('2d');
+    offCtx.beginPath();
+    offCtx.moveTo(S.lastX, S.lastY);
+    offCtx.lineTo(pos.x, pos.y);
+    offCtx.lineWidth   = THICKNESSES[S.thickness].px;
+    offCtx.lineCap     = 'round';
+    offCtx.lineJoin    = 'round';
+    offCtx.strokeStyle = S.color;
+    offCtx.stroke();
+    // Restore base snapshot, then overlay the stroke at 0.8
+    ctx.putImageData(S.persistentSnap, 0, 0);
+    ctx.globalAlpha = 0.8;
+    ctx.drawImage(S.offCanvas, 0, 0);
+    ctx.globalAlpha = 1;
   }
-  ctx.stroke();
-  ctx.globalCompositeOperation = 'source-over';
+
   S.lastX = pos.x; S.lastY = pos.y;
 }
 
@@ -336,6 +381,7 @@ async function openColoring(i) {
   S.origFill   = null;
   S.svgEl      = null;
   S.drawing    = false;
+  S.applausePlayed = false;
 
   document.getElementById('view-gallery').classList.add('hidden');
   document.getElementById('view-coloring').classList.remove('hidden');
@@ -364,6 +410,7 @@ async function openColoring(i) {
 
     S.svgEl = svgEl;
 
+    S.pendingLoad = true;
     resizeCanvas();
     attachSVGHandlers(svgEl);
     updateCursor();
@@ -419,6 +466,22 @@ function onSVGClick(e) {
   playSound('fill');
   persistColors();
   refreshUndoBtn();
+  if (S.tool === 'bucket' && newFill !== '#ffffff' && newFill !== '#fff') checkAllFilled();
+}
+
+function checkAllFilled() {
+  if (!S.svgEl || S.applausePlayed) return;
+  const regions = [...S.svgEl.querySelectorAll('[data-region]:not([data-locked="true"])')];
+  if (regions.length === 0) return;
+  const allFilled = regions.every(p => {
+    const f = (p.getAttribute('fill') || '#ffffff').toLowerCase();
+    return f !== '#ffffff' && f !== '#fff' && f !== 'white';
+  });
+  if (allFilled) {
+    S.applausePlayed = true;
+    playSound('applause');
+    if (S.index != null) saveCompletion(S.index);
+  }
 }
 
 function onSVGMouseover(e) {
@@ -429,7 +492,6 @@ function onSVGMouseover(e) {
   S.origFill = path.getAttribute('fill') || '#ffffff';
   if (S.tool === 'bucket') {
     path.setAttribute('fill', S.color);
-    path.style.opacity = '0.75';
   } else if (S.tool === 'eraser') {
     path.style.opacity = '0.45';
   }
@@ -451,7 +513,8 @@ function clearHover() {
 function setTool(tool) {
   clearHover();
   S.tool = tool;
-  if (tool !== 'brush') closeThickRail();
+  if (tool !== 'brush')  closeThickRail();
+  if (tool !== 'eraser') closeEraserThickRail();
   document.getElementById('tool-bucket').classList.toggle('tool-btn--active', tool === 'bucket');
   document.getElementById('tool-eraser').classList.toggle('tool-btn--active', tool === 'eraser');
   document.getElementById('tool-brush').classList.toggle('tool-btn--active',  tool === 'brush');
@@ -594,8 +657,12 @@ function doClear() {
     persistColors();
   }
   clearCanvas();
-  if (S.index != null) localStorage.removeItem(STORAGE_PRE + 'canvas-' + S.index);
+  if (S.index != null) {
+    localStorage.removeItem(STORAGE_PRE + 'canvas-' + S.index);
+    clearCompletion(S.index);
+  }
   S.undoStack = [];
+  S.applausePlayed = false;
   playSound('clearall');
   refreshUndoBtn();
 }
@@ -694,7 +761,7 @@ let ALFIK_SVG  = null;
 let ALFIK_IMG  = null;
 const SOUNDS = {};
 function initSounds() {
-  ['fill','undo','clearall','click'].forEach(name => {
+  ['fill','undo','clearall','click','applause'].forEach(name => {
     const a = new Audio('audio/' + name + '.mp3');
     a.preload = 'auto';
     SOUNDS[name] = a;
@@ -774,6 +841,57 @@ function openThicknessPopup()  { openThickRail(); }
 function closeThicknessPopup() { closeThickRail(); }
 let _popupOpen = false; // kept for compat — use _thickOpen internally
 
+// ── Eraser thickness rail ─────────────────────────────────────────
+let _eraserThickOpen = false;
+
+function openEraserThickRail() {
+  closeThickRail();
+  const row       = document.getElementById('eraser-thick-row');
+  const eraserBtn = document.getElementById('tool-eraser');
+  if (!row || !eraserBtn) return;
+
+  row.querySelectorAll('.thickness-pill').forEach(b => {
+    b.classList.toggle('tool-btn--active', +b.dataset.ethickness === S.eraserThickness);
+  });
+
+  const rect     = eraserBtn.getBoundingClientRect();
+  const isMobile = window.innerWidth <= 767;
+
+  if (isMobile) {
+    const popW    = 3 * 54 + 2 * 10 + 24;
+    const centerX = rect.left + rect.width / 2;
+    const left    = Math.max(8, Math.min(centerX - popW / 2, window.innerWidth - popW - 8));
+    row.style.left        = left + 'px';
+    row.style.bottom      = (window.innerHeight - rect.top + 8) + 'px';
+    row.style.top         = '';
+    row.style.flexDirection = 'row';
+  } else {
+    const popH = 3 * 54 + 2 * 10 + 24;
+    const top  = Math.max(8, Math.min(rect.top + rect.height / 2 - popH / 2, window.innerHeight - popH - 8));
+    row.style.left        = (rect.right + 8) + 'px';
+    row.style.top         = top + 'px';
+    row.style.bottom      = '';
+    row.style.flexDirection = 'column';
+  }
+
+  row.style.display = 'flex';
+  _eraserThickOpen  = true;
+}
+
+function closeEraserThickRail() {
+  const row = document.getElementById('eraser-thick-row');
+  if (row) row.style.display = 'none';
+  _eraserThickOpen = false;
+}
+
+function setEraserThickness(t) {
+  S.eraserThickness = t;
+  document.querySelectorAll('#eraser-thick-row .thickness-pill').forEach(b => {
+    b.classList.toggle('tool-btn--active', +b.dataset.ethickness === t);
+  });
+  playSound('click');
+}
+
 // ── Canvas resize ─────────────────────────────────────────────────
 function resizeCanvas() {
   const area   = document.querySelector('.canvas-area');
@@ -785,13 +903,26 @@ function resizeCanvas() {
     const r = area.getBoundingClientRect();
     if (!r.width && !r.height) return;
     const size = Math.max(Math.min(r.width, r.height) - 12, 80);
-    if (parseInt(wrap.style.width) === size) return; // no change
+
+    if (parseInt(wrap.style.width) === size) {
+      // Same size — if we just switched pages, clear and reload brush data
+      if (S.pendingLoad) {
+        S.pendingLoad = false;
+        if (canvas) {
+          canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+          loadBrushData();
+        }
+      }
+      return;
+    }
 
     wrap.style.width  = size + 'px';
     wrap.style.height = size + 'px';
 
     if (!canvas) return;
-    const old = (canvas.width > 0 && canvas.height > 0) ? canvas.toDataURL() : null;
+    // Preserve strokes only on same-page resize; on page switch load fresh
+    const old = (!S.pendingLoad && canvas.width > 0 && canvas.height > 0) ? canvas.toDataURL() : null;
+    S.pendingLoad = false;
     canvas.width  = size;
     canvas.height = size;
     if (old) {
@@ -819,7 +950,19 @@ function wireEvents() {
 
   // Tool buttons
   document.getElementById('tool-bucket').addEventListener('click', () => setTool('bucket'));
-  document.getElementById('tool-eraser').addEventListener('click', () => setTool('eraser'));
+  const eraserBtn = document.getElementById('tool-eraser');
+  eraserBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    playSound('click');
+    if (_eraserThickOpen) { closeEraserThickRail(); }
+    else { setTool('eraser'); openEraserThickRail(); }
+  }, { passive: false });
+  eraserBtn.addEventListener('click', () => {
+    if (_eraserThickOpen) { closeEraserThickRail(); return; }
+    setTool('eraser');
+    openEraserThickRail();
+  });
   // Brush button — expand rail on mobile
   const brushBtn = document.getElementById('tool-brush');
   brushBtn.addEventListener('touchstart', (e) => {
@@ -846,14 +989,14 @@ function wireEvents() {
   document.getElementById('btn-gallery').addEventListener('click', goToGallery);
   document.getElementById('btn-print').addEventListener('click', printColoring);
   document.getElementById('btn-save').addEventListener('click', savePNG);
-  document.getElementById('btn-clear').addEventListener('click', askClear);
+  document.getElementById('btn-clear').addEventListener('click', doClear);
 
   // Action rail (mobile)
   document.getElementById('btn-undo-m').addEventListener('click', undo);
   document.getElementById('btn-gallery-m').addEventListener('click', goToGallery);
   document.getElementById('btn-print-m').addEventListener('click', printColoring);
   document.getElementById('btn-save-m').addEventListener('click', savePNG);
-  document.getElementById('btn-clear-m').addEventListener('click', askClear);
+  document.getElementById('btn-clear-m').addEventListener('click', doClear);
 
   // Canvas brush events
   const canvas = getCanvas();
@@ -896,6 +1039,21 @@ function wireEvents() {
     el.addEventListener('click', () => playSound('click'), { capture: true });
   });
 
+  // Eraser thickness popup buttons
+  document.querySelectorAll('#eraser-thick-row .thickness-pill').forEach(btn => {
+    btn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setEraserThickness(+btn.dataset.ethickness);
+      closeEraserThickRail();
+    }, { passive: false });
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setEraserThickness(+btn.dataset.ethickness);
+      closeEraserThickRail();
+    });
+  });
+
   // Thickness popup buttons
   document.querySelectorAll('#thickness-popup .thickness-pill, #mobile-thick-row .thickness-pill').forEach(btn => {
     btn.addEventListener('touchstart', (e) => {
@@ -912,15 +1070,23 @@ function wireEvents() {
     });
   });
 
-  window.addEventListener('resize', () => { fixVH(); resizeCanvas(); updateCursor(); closeThicknessPopup(); });
+  window.addEventListener('resize', () => { fixVH(); resizeCanvas(); updateCursor(); closeThicknessPopup(); closeEraserThickRail(); });
 
-  // Close thickness popup when clicking outside it
+  // Close thickness popups when clicking outside
   document.addEventListener('click', (e) => {
-    if (!_thickOpen) return;
-    const row = document.getElementById('mobile-thick-row');
-    const brushBtn = document.getElementById('tool-brush');
-    if (row && !row.contains(e.target) && brushBtn && !brushBtn.contains(e.target)) {
-      closeThickRail();
+    if (_thickOpen) {
+      const row      = document.getElementById('mobile-thick-row');
+      const brushBtn = document.getElementById('tool-brush');
+      if (row && !row.contains(e.target) && brushBtn && !brushBtn.contains(e.target)) {
+        closeThickRail();
+      }
+    }
+    if (_eraserThickOpen) {
+      const row  = document.getElementById('eraser-thick-row');
+      const eBtn = document.getElementById('tool-eraser');
+      if (row && !row.contains(e.target) && eBtn && !eBtn.contains(e.target)) {
+        closeEraserThickRail();
+      }
     }
   });
 

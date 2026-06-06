@@ -98,6 +98,7 @@ body {
 .icon-btn--danger { background: var(--red); color: #fff; }
 .icon-btn--danger:hover { background: #d42f2f; transform: scale(1.05); }
 .icon-btn svg { width: 22px; height: 22px; }
+.icon-btn.spinning svg { animation: spin .75s linear infinite; }
 
 /* ══════════════════════════════════════════════════════════════
    GALLERY VIEW
@@ -137,6 +138,8 @@ body {
 .gallery-card:hover  { transform: translateY(-5px) scale(1.02); box-shadow: var(--sh-lg); border-color: var(--brand-light); }
 .gallery-card:active { transform: scale(.97); }
 
+/* Landscape card (grafomotorika) — rovnaká veľkosť ako štvorcové karty */
+
 .gallery-card__thumb {
   aspect-ratio: 1; background: #fafef9;
   display: flex; align-items: center; justify-content: center;
@@ -167,14 +170,14 @@ body {
 #btn-gallery.tool-btn--active .flower-center,
 #btn-gallery-m.tool-btn--active .flower-center { fill: var(--brand); }
 
+.gallery-card__badge {
   display: inline-flex; align-items: center; gap: 4px;
   background: var(--orange); color: #fff;
   font-size: 9px; font-weight: 700; letter-spacing: .05em;
   padding: 2px 7px; border-radius: var(--r-full);
 }
-.gallery-card__badge--done {
-  background: var(--green);
-}
+.gallery-card__badge--done { background: var(--green); }
+.gallery-card__badge--gm   { background: var(--brand); }
 
 /* ══════════════════════════════════════════════════════════════
    COLORING VIEW

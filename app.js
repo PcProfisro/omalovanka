@@ -48,7 +48,14 @@ async function loadGithubSources() {
              .sort((a, b) => a.name.localeCompare(b.name, 'sk', { numeric: true }))
       : [];
     if (svgs.length > 0) {
-      DRIVE_FILES = svgs.map(f => ({ id: f.download_url, name: f.name.replace(/\.svg$/i, '') }));
+      DRIVE_FILES = svgs.map(f => {
+        const isGM = f.name.toLowerCase().startsWith('gm-');
+        return {
+          id:   f.download_url,
+          name: f.name.replace(/\.svg$/i, '').replace(/^gm-/i, ''),
+          isGM,
+        };
+      });
       COUNT = svgs.length;
     }
   } catch (e) {
@@ -101,6 +108,7 @@ const S = {
   view:        'gallery',
   index:       null,
   tool:        'bucket',     // 'bucket' | 'eraser' | 'brush'
+  isGM:        false,         // true = grafomotorika (gm- prefix), no bucket
   color:       '#9b7fd6',
   thickness:   1,            // 0 | 1 | 2
   eraserThickness: 1,        // 0 | 1 | 2
@@ -192,24 +200,76 @@ function applyColorMap(svgEl, map) {
   }
 }
 
+// ── GM UI helpers ────────────────────────────────────────────────
+function applyGMUI() {
+  const bucketBtn = document.getElementById('tool-bucket');
+  if (bucketBtn) bucketBtn.style.display = S.isGM ? 'none' : '';
+
+  // Ghost spacer: neviditeľný placeholder namiesto skrytého vedierka,
+  // aby sa eraser+brush zarovnali s undo+gallery na pravej lište.
+  const toolBtnGroup = document.querySelector('#tool-rail .btn-group:last-of-type');
+  if (toolBtnGroup) {
+    const ghost = toolBtnGroup.querySelector('.gm-ghost-spacer');
+    if (S.isGM && !ghost) {
+      const el = document.createElement('div');
+      el.className = 'gm-ghost-spacer';
+      el.setAttribute('aria-hidden', 'true');
+      el.style.cssText = 'width:54px;height:54px;flex-shrink:0;visibility:hidden;pointer-events:none;order:0';
+      toolBtnGroup.appendChild(el);
+    } else if (!S.isGM && ghost) {
+      ghost.remove();
+    }
+  }
+
+  if (S.isGM && S.tool === 'bucket') {
+    // Switch to brush silently (no sound)
+    S.tool = 'brush';
+    document.getElementById('tool-bucket').classList.remove('tool-btn--active');
+    document.getElementById('tool-eraser').classList.remove('tool-btn--active');
+    document.getElementById('tool-brush').classList.add('tool-btn--active');
+    applyToolMode();
+    updateCursor();
+  }
+  if (S.isGM) checkGMOrientation();
+}
+
+function checkGMOrientation() {
+  if (window.innerWidth <= 767) return; // mobil — GM sa nepoužíva
+  if (window.innerHeight > window.innerWidth) {
+    showToast('Otoč tablet na šírku pre lepší zážitok');
+  }
+}
+
 // ── Gallery ─────────────────────────────────────────────────────
 function buildGallery() {
   const grid = document.getElementById('gallery-grid');
   grid.innerHTML = '';
   for (let i = 1; i <= COUNT; i++) {
-    const label = DRIVE_FILES[i - 1] ? DRIVE_FILES[i - 1].name : ('Omaľovánka ' + i);
-    const card = document.createElement('div');
-    card.className = 'gallery-card';
+    const fileInfo  = DRIVE_FILES[i - 1];
+    const isGM      = !!(fileInfo && fileInfo.isGM);
+    const card      = document.createElement('div');
+    card.className  = 'gallery-card' + (isGM ? ' gallery-card--landscape' : '');
     card.dataset.index = i;
     const started   = hasProgress(i);
     const completed = isCompleted(i);
+
+    const badges = [];
+    if (isGM) {
+      badges.push('<span class="gallery-card__badge gallery-card__badge--gm">GRAFOMOTORIKA</span>');
+    }
+    if (started) {
+      badges.push(
+        '<span class="gallery-card__badge' + (completed ? ' gallery-card__badge--done' : '') + '">' +
+        (completed ? 'VYMAĽOVANÉ' : 'MAĽUJEM') + '</span>'
+      );
+    }
+    const footerHtml = badges.length
+      ? '<div class="gallery-card__footer">' + badges.join('') + '</div>'
+      : '';
+
     card.innerHTML =
       '<div class="gallery-card__thumb"><div class="thumb-placeholder">🎨</div></div>' +
-      (started
-        ? '<div class="gallery-card__footer"><span class="gallery-card__badge' +
-          (completed ? ' gallery-card__badge--done' : '') + '">' +
-          (completed ? 'VYMAĽOVANÉ' : 'MAĽUJEM') + '</span></div>'
-        : '');
+      footerHtml;
     card.addEventListener('click', () => openColoring(i));
     grid.appendChild(card);
     loadThumb(i, card);
@@ -382,6 +442,7 @@ async function openColoring(i) {
   S.svgEl      = null;
   S.drawing    = false;
   S.applausePlayed = false;
+  S.isGM       = !!(DRIVE_FILES[i - 1] && DRIVE_FILES[i - 1].isGM);
 
   document.getElementById('view-gallery').classList.add('hidden');
   document.getElementById('view-coloring').classList.remove('hidden');
@@ -416,6 +477,7 @@ async function openColoring(i) {
     updateCursor();
     refreshUndoBtn();
     applyToolMode();
+    applyGMUI();
 
   } catch (e) {
     console.error('Failed to load SVG', i, e);
@@ -511,6 +573,7 @@ function clearHover() {
 
 // ── Tools ────────────────────────────────────────────────────────
 function setTool(tool) {
+  if (S.isGM && tool === 'bucket') tool = 'brush'; // grafomotorika: vedierko nedostupné
   clearHover();
   S.tool = tool;
   if (tool !== 'brush')  closeThickRail();
@@ -554,10 +617,26 @@ function refreshUndoBtn() {
   if (btn) btn.disabled = S.undoStack.length === 0;
 }
 
+// ── Reload gallery from source ──────────────────────────────────
+async function reloadGallery() {
+  const btn = document.getElementById('gallery-reload');
+  if (btn) { btn.disabled = true; btn.classList.add('spinning'); }
+  S.svgCache = {}; // clear thumbnail cache so fresh SVGs are fetched
+  await loadGithubSources();
+  await loadDriveSources();
+  buildGallery();
+  if (btn) { btn.disabled = false; btn.classList.remove('spinning'); }
+}
+
 // ── Navigation ───────────────────────────────────────────────────
 function goToGallery() {
   clearHover();
   S.svgEl = null; S.undoStack = []; S.index = null; S.drawing = false;
+  S.isGM = false;
+  const bucketBtn = document.getElementById('tool-bucket');
+  if (bucketBtn) bucketBtn.style.display = '';
+  const ghost = document.querySelector('.gm-ghost-spacer');
+  if (ghost) ghost.remove();
   document.getElementById('view-coloring').classList.add('hidden');
   document.getElementById('view-gallery').classList.remove('hidden');
   buildGallery();
@@ -570,34 +649,38 @@ function savePNG() {
   const svgBlob    = new Blob([serialized], { type: 'image/svg+xml' });
   const svgUrl     = URL.createObjectURL(svgBlob);
 
+  const expW = S.isGM ? 1920 : 1024;
+  const expH = S.isGM ? 1358 : 1024;
+
   const exportCanvas = document.createElement('canvas');
-  exportCanvas.width = exportCanvas.height = 1024;
-  const ctx = exportCanvas.getContext('2d');
+  exportCanvas.width  = expW;
+  exportCanvas.height = expH;
+  const ctx    = exportCanvas.getContext('2d');
   const svgImg = new Image();
 
   svgImg.onload = () => {
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 1024, 1024);
-    ctx.drawImage(svgImg, 0, 0, 1024, 1024);
+    ctx.fillRect(0, 0, expW, expH);
+    ctx.drawImage(svgImg, 0, 0, expW, expH);
     URL.revokeObjectURL(svgUrl);
 
     // Composite brush layer on top
     const brushCanvas = getCanvas();
     if (brushCanvas && brushCanvas.width > 0) {
-      ctx.drawImage(brushCanvas, 0, 0, 1024, 1024);
+      ctx.drawImage(brushCanvas, 0, 0, expW, expH);
     }
 
     // Alfík logo — bottom-right corner
     if (ALFIK_IMG && ALFIK_IMG.complete && ALFIK_IMG.naturalWidth > 0) {
       const sz  = 110;
       const pad = 24;
-      ctx.drawImage(ALFIK_IMG, 1024 - sz - pad, 1024 - sz - pad, sz, sz);
+      ctx.drawImage(ALFIK_IMG, expW - sz - pad, expH - sz - pad, sz, sz);
     }
 
     exportCanvas.toBlob(blob => {
       const a    = document.createElement('a');
       a.href     = URL.createObjectURL(blob);
-      a.download = 'malovanky-jar-' + S.index + '.png';
+      a.download = (S.isGM ? 'grafomotorika-' : 'malovanky-jar-') + S.index + '.png';
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 30000);
     }, 'image/png');
@@ -610,19 +693,41 @@ function savePNG() {
 // ── Print ────────────────────────────────────────────────────────
 function printColoring() {
   if (!S.svgEl) return;
-  const svg     = new XMLSerializer().serializeToString(S.svgEl);
+  const svg      = new XMLSerializer().serializeToString(S.svgEl);
   const logoHtml = ALFIK_SVG
     ? `<div style="position:absolute;bottom:16px;right:16px;width:72px;height:72px">${ALFIK_SVG}</div>`
     : '';
-  const win = window.open('', '_blank', 'width=900,height=900');
+
+  // Include brush canvas overlay (important for grafomotorika)
+  const brushCanvas  = getCanvas();
+  const brushImgHtml = (brushCanvas && brushCanvas.width > 0)
+    ? `<img src="${brushCanvas.toDataURL()}" style="position:absolute;top:0;left:0;width:100%;height:100%">`
+    : '';
+
+  const isGM  = S.isGM;
+  const winW  = isGM ? 1200 : 900;
+  const winH  = isGM ? Math.round(1200 * 1358 / 1920) : 900;
+  const title = isGM ? 'Grafomotorika' : 'Maľovanky – Jar';
+
+  const pageRule   = isGM ? '@page{size:A4 landscape;margin:8mm}' : '';
+  const bodyScreen = isGM
+    ? 'position:relative;width:min(92vw,calc(92vh * 1.414));aspect-ratio:1920/1358;margin:4vmin auto'
+    : 'position:relative;width:90vmin;height:90vmin;margin:auto;margin-top:5vmin';
+  const bodyPrint  = isGM
+    ? '@media print{body{width:100%;margin:0}}'
+    : '@media print{body{width:95vmin;height:95vmin;margin-top:2.5vmin}}';
+
+  const win = window.open('', '_blank', `width=${winW},height=${winH}`);
   if (!win) { showToast('Povol vyskakovacie okná pre tlač.'); return; }
-  win.document.write('<!doctype html><html lang="sk"><head><meta charset="utf-8">' +
-    '<title>Maľovanky – Jar</title><style>' +
-    '*{margin:0;padding:0;box-sizing:border-box}' +
-    'body{position:relative;width:90vmin;height:90vmin;margin:auto;margin-top:5vmin}' +
-    'svg,canvas{position:absolute;top:0;left:0;width:100%;height:100%}' +
-    '@media print{body{width:95vmin;height:95vmin;margin-top:2.5vmin}}' +
-    '</style></head><body>' + svg + logoHtml + '</body></html>');
+  win.document.write(
+    `<!doctype html><html lang="sk"><head><meta charset="utf-8">` +
+    `<title>${title}</title><style>` +
+    `*{margin:0;padding:0;box-sizing:border-box}${pageRule}` +
+    `body{${bodyScreen}}` +
+    `svg,img{position:absolute;top:0;left:0;width:100%;height:100%}` +
+    `${bodyPrint}` +
+    `</style></head><body>${svg}${brushImgHtml}${logoHtml}</body></html>`
+  );
   win.document.close();
   win.addEventListener('load', () => { win.focus(); win.print(); });
 }
@@ -691,7 +796,7 @@ function buildPalette() {
     btn.addEventListener('click', () => {
       S.color = hex;
       bar.querySelectorAll('.color-chip').forEach(c => c.classList.toggle('color-chip--active', c.title === hex));
-      if (S.tool === 'eraser') setTool('bucket');
+      if (S.tool === 'eraser') setTool(S.isGM ? 'brush' : 'bucket');
       else { updateCursor(); playSound('click'); }
     });
     bar.appendChild(btn);
@@ -902,10 +1007,24 @@ function resizeCanvas() {
   function applySize() {
     const r = area.getBoundingClientRect();
     if (!r.width && !r.height) return;
-    const size = Math.max(Math.min(r.width, r.height) - 12, 80);
 
-    if (parseInt(wrap.style.width) === size) {
-      // Same size — if we just switched pages, clear and reload brush data
+    let newW, newH;
+    if (S.isGM) {
+      // Landscape 1920:1358 — fit into available area
+      const GM_W = 1920, GM_H = 1358;
+      const pad  = 12;
+      const maxW = r.width  - pad;
+      const maxH = r.height - pad;
+      const scale = Math.min(maxW / GM_W, maxH / GM_H);
+      newW = Math.max(Math.round(GM_W * scale), 200);
+      newH = Math.max(Math.round(GM_H * scale), 142);
+    } else {
+      const size = Math.max(Math.min(r.width, r.height) - 12, 80);
+      newW = size;
+      newH = size;
+    }
+
+    if (parseInt(wrap.style.width) === newW && parseInt(wrap.style.height) === newH) {
       if (S.pendingLoad) {
         S.pendingLoad = false;
         if (canvas) {
@@ -916,27 +1035,24 @@ function resizeCanvas() {
       return;
     }
 
-    wrap.style.width  = size + 'px';
-    wrap.style.height = size + 'px';
+    wrap.style.width  = newW + 'px';
+    wrap.style.height = newH + 'px';
 
     if (!canvas) return;
-    // Preserve strokes only on same-page resize; on page switch load fresh
     const old = (!S.pendingLoad && canvas.width > 0 && canvas.height > 0) ? canvas.toDataURL() : null;
     S.pendingLoad = false;
-    canvas.width  = size;
-    canvas.height = size;
+    canvas.width  = newW;
+    canvas.height = newH;
     if (old) {
       const img = new Image();
-      img.onload = () => getCtx() && getCtx().drawImage(img, 0, 0, size, size);
+      img.onload = () => getCtx() && getCtx().drawImage(img, 0, 0, newW, newH);
       img.src = old;
     } else {
       loadBrushData();
     }
   }
 
-  // Synchronous — works immediately on desktop
   applySize();
-  // Deferred refinement — catches iOS Safari post-layout shifts
   requestAnimationFrame(() => requestAnimationFrame(applySize));
 }
 
@@ -947,6 +1063,7 @@ function wireEvents() {
   // document.getElementById('btn-close')      — no handler
   // document.getElementById('btn-close-m')    — no handler
   document.getElementById('gallery-fullscreen').addEventListener('click', toggleFullscreen);
+  document.getElementById('gallery-reload').addEventListener('click', reloadGallery);
 
   // Tool buttons
   document.getElementById('tool-bucket').addEventListener('click', () => setTool('bucket'));
